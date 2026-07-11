@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+src/biomass_reader/_version.py
+
+# Envs / tooling
+.pixi/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data / scratch
+*.tiff
+*.tif
+*.nc
+*.zip
+scratch/
+data/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

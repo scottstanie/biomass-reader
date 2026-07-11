@@ -1,0 +1,128 @@
+[build-system]
+requires = ["setuptools>=64.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+# ----------------------------------------------------------------------------
+# biomass-reader
+#
+# A small, isce3-native reader for ESA BIOMASS Level-1a SCS (single-look
+# complex, slant-range) products. It plays the role that `s1-reader` plays for
+# Sentinel-1: parse the product annotation into isce3 objects
+# (`RadarGridParameters`, `Orbit`, Doppler `LUT2d`) plus the complex pixels, so
+# that `isce3.geocode.geocode_slc` (and, downstream, dolphin / sweets) can
+# geocode and interfere BIOMASS scenes with no bespoke SAR code.
+#
+# Recommended install: pixi (https://pixi.sh). The pixi block below is the
+# canonical environment; it pins the conda-forge isce3 / gdal that cannot ship
+# on PyPI.
+#
+#     pixi install
+#     pixi run biomass-reader --help
+# ----------------------------------------------------------------------------
+
+[project]
+name = "biomass-reader"
+description = "isce3-native reader for ESA BIOMASS L1a SCS products"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.11"
+license = { text = "BSD-3-Clause OR Apache-2.0" }
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+
+# Pure-python runtime deps. isce3 + gdal are conda-only and live in the pixi
+# block below.
+dependencies = [
+  "numpy",
+  "python-dateutil",
+  "shapely>=2.0",
+  "rasterio",
+  "lxml",
+  "xarray",
+  "netCDF4",
+  "loguru",
+  "tyro",
+]
+
+[project.scripts]
+biomass-reader = "biomass_reader.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/scottstanie/biomass-reader"
+
+[tool.setuptools_scm]
+# version written into src/biomass_reader/_version.py at install time.
+version_file = "src/biomass_reader/_version.py"
+
+# ----------------------------------------------------------------------------
+# pixi: canonical environment definition
+# ----------------------------------------------------------------------------
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[tool.pixi.pypi-dependencies]
+biomass-reader = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+python = ">=3.11"
+pip = ">=21.3"
+# Heavy native / conda-only deps.
+gdal = "*"
+libgdal-netcdf = "*"
+numpy = ">=1.25"
+python-dateutil = "*"
+shapely = ">=2.0"
+rasterio = "*"
+lxml = "*"
+xarray = "*"
+netcdf4 = "*"
+loguru = "*"
+tyro = "*"
+
+# isce3 lives in the cpu/gpu features so linux CUDA hosts can swap in isce3-cuda.
+[tool.pixi.feature.cpu.dependencies]
+isce3 = ">=0.24"
+
+[tool.pixi.feature.gpu.target.linux-64.dependencies]
+isce3-cuda = ">=0.24"
+
+[tool.pixi.feature.gpu.system-requirements]
+cuda = "12"
+
+[tool.pixi.feature.test.dependencies]
+pytest = ">=8"
+pytest-cov = "*"
+pre-commit = "*"
+mypy = "*"
+
+[tool.pixi.tasks]
+test = "pytest"
+
+[tool.pixi.environments]
+default = { features = ["test", "cpu"], solve-group = "default" }
+minimal = { features = ["cpu"], solve-group = "default" }
+gpu = { features = ["test", "gpu"] }
+
+# ----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 88
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "D", "UP", "B", "NPY"]
+ignore = ["D100", "D104", "D105"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
