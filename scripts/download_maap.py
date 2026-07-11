@@ -34,7 +34,7 @@ CATALOG = "https://catalog.maap.eo.esa.int/catalogue"
 
 
 def _session() -> requests.Session:
-    """A requests session that retries connection resets with backoff.
+    """Return a requests session that retries connection resets with backoff.
 
     The MAAP endpoints intermittently reset the TLS connection; urllib3's
     ``Retry`` transparently re-establishes it for connect/read errors and 5xx
@@ -110,7 +110,9 @@ def search(
     return r.json()["features"]
 
 
-def download(url: str, token: str, dest: pathlib.Path, retries: int = 4) -> pathlib.Path:
+def download(
+    url: str, token: str, dest: pathlib.Path, retries: int = 4
+) -> pathlib.Path:
     """Stream a product zip to ``dest`` with simple resume-on-retry."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     for attempt in range(retries):
