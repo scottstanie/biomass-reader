@@ -15,7 +15,9 @@ scenes:
 from __future__ import annotations
 
 from ._annotation import AnnotationMetadata, DopplerEstimate, parse_annotation
+from .corrections import CorrectionStatus, parse_correction_status
 from .product import BiomassProduct
+from .qa import gcp_radar_coordinate_errors
 from .slc import BiomassSlc
 
 try:
@@ -27,7 +29,10 @@ __all__ = [
     "AnnotationMetadata",
     "BiomassProduct",
     "BiomassSlc",
+    "CorrectionStatus",
     "DopplerEstimate",
     "__version__",
     "parse_annotation",
+    "parse_correction_status",
+    "gcp_radar_coordinate_errors",
 ]

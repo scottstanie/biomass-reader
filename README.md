@@ -45,28 +45,58 @@ driver.
 | Look side | **left** | `LookSide` from `antennaLookDirection` |
 | Pixels | 4-band amplitude + 4-band phase GeoTIFFs (HH,HV,VH,VV) | reconstruct `amp * exp(1j*phase)` |
 | Doppler | non-zero centroid (like S1) | `LUT2d` from `dcEstimate` polynomials |
-| Ionosphere | dominant at P-band; `ionosphereCorrection` LUT shipped | surfaced via `biomass_reader.ionosphere` |
+| Ionosphere | dominant at P-band; correction flags and LUT shipped | flags and labeled LUT coordinates exposed; never reapplied implicitly |
 | Granule | full-swath scene (not bursts) | one `BiomassSlc` per scene+pol |
 
 ## Status
 
-**Pre-alpha scaffold.** The annotation/orbit element paths are derived from the
-official BIOMASS Processing Suite XSDs
-(`bio-l1ab-main-annotation.xsd`, `bio-l1-annotations.xsd`) and parsed
-namespace-agnostically. They still need to be **validated against a real
-downloaded SCS product** — see `VALIDATION` checklist below. The Doppler-LUT
-grid construction and orbit-file layout in particular should be confirmed
-end-to-end by geocoding one scene.
+**Pre-alpha, validated prototype.** Annotation units, orbit layout, complex
+sample reconstruction, polarization order, Doppler construction, sarlet
+protocol compatibility, stack geocoding, Dolphin, and Whirlwind have been
+exercised with three BPS 4.4.2 repeat-pass products from track T007/frame F004.
+See the [architecture review](docs/ARCHITECTURE.md) and
+[correction inventory](docs/CORRECTIONS.md) for verified behavior and remaining
+limitations. The separate [polarimetric research note](docs/POLARIMETRIC_RESEARCH.md)
+lays out the moisture/vegetation hypotheses and the evidence needed to test them.
+Exact commands and measured results are recorded in the
+[T007/F004 validation report](docs/VALIDATION.md).
 
-### VALIDATION checklist (do once first product is on disk)
+## Repeat-pass GSLC workflow
 
-- [ ] Confirm annotation element names/units match a real `annotation/*.xml`
-      (esp. `firstSampleSlantRangeTime` units, `radarCarrierFrequency`,
-      `antennaLookDirection` value).
-- [ ] Confirm orbit file layout (`OSV` / `X,Y,Z,VX,VY,VZ`, `UTC=` prefix).
-- [ ] Confirm measurement band order is `HH, HV, VH, VV`.
-- [ ] Geocode one scene (`examples/geocode_slc.py`) and eyeball against the
-      product `preview/` quicklook + KML footprint.
+Download is an independent, optional stage. Credentials are read from a local
+file and are never accepted as command-line values:
+
+```bash
+python scripts/download_maap.py \
+  --bbox -66.5 2.5 -64.5 4.5 --start 2026-04-22 --end 2026-04-30 \
+  --track T007 --frame F004 --dest /data/biomass --max 3 --unzip
+```
+
+Build a shared union-grid stack from existing products and optionally run
+Dolphin with the Whirlwind unwrapper:
+
+```bash
+python scripts/biomass_pipeline.py \
+  --products /data/biomass/BIO_S1_SCS__1S_*/ \
+  --dem /data/dem_utm.tif --work /data/biomass/validation \
+  --polarization HH --spacing 30 --run-dolphin
+
+python scripts/validate_stack.py /data/biomass/validation/gslc/*.tif \
+  --output-dir /data/biomass/validation/diagnostics --looks 6
+```
+
+Every GSLC carries NaN nodata and basic provenance tags; `stack.json` records
+the common grid, DEM, source products, wavelength, and flattening choice.
+
+## Tests
+
+```bash
+pytest
+BIOMASS_TEST_DATA=/data/biomass pytest
+```
+
+The second form enables windowed regression tests against local full products;
+large ESA data are not copied into the repository.
 
 ## Install
 

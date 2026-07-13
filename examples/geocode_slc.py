@@ -22,8 +22,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import numpy as np
-
 
 def geocode_scene(
     product_dir: Path,
@@ -36,66 +34,15 @@ def geocode_scene(
     import isce3
 
     from biomass_reader import BiomassSlc
+    from biomass_reader.geocode import geocode_slc, make_shared_geogrid
 
     slc = BiomassSlc.from_dir(product_dir, polarization)
-    radar_grid = slc.radar_grid
-    orbit = slc.orbit
-    native_doppler = slc.doppler
-
     dem_raster = isce3.io.Raster(str(dem_file))
     epsg = dem_raster.get_epsg()
-    proj = isce3.core.make_projection(epsg)
-    ellipsoid = proj.ellipsoid
-
-    # Geogrid covering the scene footprint at the requested ground spacing.
-    geogrid = isce3.product.bbox_to_geogrid(
-        radar_grid, orbit, native_doppler, spacing, -spacing, epsg
-    )
-
-    # Read the full complex scene (radar coordinates).
-    rdr_data = slc.read_complex()
-    geo_data = np.zeros((geogrid.length, geogrid.width), dtype=np.complex64)
-
-    isce3.geocode.geocode_slc(
-        geo_data_blocks=geo_data,
-        rdr_data_blocks=rdr_data,
-        dem_raster=dem_raster,
-        radargrid=radar_grid,
-        geogrid=geogrid,
-        orbit=orbit,
-        native_doppler=native_doppler,
-        image_grid_doppler=isce3.core.LUT2d(),
-        ellipsoid=ellipsoid,
-        threshold_geo2rdr=1.0e-8,
-        num_iter_geo2rdr=25,
-        flatten=True,
-    )
-
-    _write_geotiff(geo_data, geogrid, epsg, out_file)
-    print(f"wrote {out_file}  {geo_data.shape}  EPSG:{epsg}")
+    geogrid = make_shared_geogrid([slc], epsg, spacing)
+    geocode_slc(slc, dem_file, geogrid, out_file)
+    print(f"wrote {out_file}  {(geogrid.length, geogrid.width)}  EPSG:{epsg}")
     return out_file
-
-
-def _write_geotiff(data, geogrid, epsg, out_file: Path) -> None:
-    from osgeo import gdal, osr
-
-    driver = gdal.GetDriverByName("GTiff")
-    ds = driver.Create(
-        str(out_file),
-        geogrid.width,
-        geogrid.length,
-        1,
-        gdal.GDT_CFloat32,
-        options=["COMPRESS=DEFLATE", "TILED=YES"],
-    )
-    ds.SetGeoTransform(
-        (geogrid.start_x, geogrid.spacing_x, 0, geogrid.start_y, 0, geogrid.spacing_y)
-    )
-    srs = osr.SpatialReference()
-    srs.ImportFromEPSG(epsg)
-    ds.SetProjection(srs.ExportToWkt())
-    ds.GetRasterBand(1).WriteArray(data)
-    ds.FlushCache()
 
 
 def main() -> None:  # noqa: D103

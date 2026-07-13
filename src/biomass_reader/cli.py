@@ -67,7 +67,7 @@ class ToGeotiff:
 
 def main() -> None:
     """Entry point for the ``biomass-reader`` command."""
-    command = tyro.cli(Info | ToGeotiff)
+    command = tyro.cli(Info | ToGeotiff)  # type: ignore[call-overload]
     command.run()
 
 

@@ -38,6 +38,7 @@ class BiomassProduct:
     lut_nc: Path
     orbit_xml: Path
     attitude_xml: Path
+    measurement_vrt: Path
     measurement_abs: Path
     measurement_phase: Path
 
@@ -67,6 +68,7 @@ class BiomassProduct:
             lut_nc=_first(annotation, "*.nc"),
             orbit_xml=_first(navigation, "*orb*.xml"),
             attitude_xml=_first(navigation, "*att*.xml"),
+            measurement_vrt=_first(measurement, "*.vrt"),
             measurement_abs=_first(measurement, "*abs*.tiff"),
             measurement_phase=_first(measurement, "*phase*.tiff"),
         )

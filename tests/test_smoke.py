@@ -1,7 +1,7 @@
 """Smoke tests that do not require a downloaded product.
 
-Product-level tests (parsing a real annotation, geocoding a scene) are added
-once a sample SCS product is available in the test-data area.
+Set ``BIOMASS_TEST_DATA`` to the directory containing extracted SCS products to
+enable the real-product regression tests in ``test_products.py``.
 """
 
 from __future__ import annotations

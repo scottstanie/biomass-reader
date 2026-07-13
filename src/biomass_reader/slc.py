@@ -144,10 +144,42 @@ class BiomassSlc:
         """Geographic bounds (west, south, east, north) from the footprint."""
         return self._meta.footprint.bounds
 
+    @cached_property
+    def center_target(self) -> np.ndarray:
+        """Approximate the scene-center ground target in ECEF coordinates.
+
+        BIOMASS does not store a distinguished center-pixel ECEF coordinate in
+        the main annotation.  The footprint centroid at zero ellipsoidal
+        height is the convention used by sarlet's Sentinel-1 adapter for stack
+        baseline calculations.
+        """
+        import isce3
+
+        center = self._meta.footprint.centroid
+        xyz = isce3.core.Ellipsoid().lon_lat_to_xyz(
+            [np.deg2rad(center.x), np.deg2rad(center.y), 0.0]
+        )
+        return np.asarray(xyz, dtype=np.float64)
+
     @property
     def identifier(self) -> str:
         """Unique identifier: ``<product_id>_<pol>``."""
         return f"{self._product.product_id}_{self._polarization}"
+
+    @property
+    def product(self) -> BiomassProduct:
+        """Resolved files belonging to the source L1a product."""
+        return self._product
+
+    @property
+    def product_id(self) -> str:
+        """Source L1a product identifier."""
+        return self._product.product_id
+
+    @property
+    def swath(self) -> str:
+        """BIOMASS acquisition swath identifier."""
+        return self._meta.swath
 
     @property
     def look_side(self) -> str:
@@ -166,8 +198,8 @@ class BiomassSlc:
 
     @property
     def slc_path(self) -> Path:
-        """Path to the amplitude measurement GeoTIFF."""
-        return self._product.measurement_abs
+        """Path to the product-supplied four-band complex VRT."""
+        return self._product.measurement_vrt
 
     # ------------------------------------------------------------------ #
     # Data access

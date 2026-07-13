@@ -41,7 +41,14 @@ def open_lut_group(lut_nc: str | Path, group: str) -> xr.Dataset:
     xarray.Dataset
     """
     assert group in LUT_GROUPS, f"unknown LUT group {group!r}; expected {LUT_GROUPS}"
-    return xr.open_dataset(lut_nc, group=group)
+    dataset = xr.open_dataset(lut_nc, group=group)
+    with xr.open_dataset(lut_nc) as root:
+        coordinates = {
+            dim: root[dim].load()
+            for dim in dataset.dims
+            if dim in root.variables and root[dim].dims == (dim,)
+        }
+    return dataset.assign_coords(coordinates)
 
 
 def open_ionosphere(lut_nc: str | Path) -> xr.Dataset:

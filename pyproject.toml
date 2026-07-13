@@ -41,11 +41,13 @@ dependencies = [
   "python-dateutil",
   "shapely>=2.0",
   "rasterio",
+  "affine",
   "lxml",
   "xarray",
   "netCDF4",
   "loguru",
   "tyro",
+  "requests",
 ]
 
 [project.scripts]
@@ -78,11 +80,14 @@ numpy = ">=1.25"
 python-dateutil = "*"
 shapely = ">=2.0"
 rasterio = "*"
+affine = "*"
 lxml = "*"
 xarray = "*"
 netcdf4 = "*"
 loguru = "*"
 tyro = "*"
+requests = "*"
+matplotlib = "*"
 
 # isce3 lives in the cpu/gpu features so linux CUDA hosts can swap in isce3-cuda.
 [tool.pixi.feature.cpu.dependencies]
@@ -126,3 +131,4 @@ plugins = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
