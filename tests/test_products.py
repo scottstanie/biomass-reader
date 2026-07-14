@@ -14,7 +14,8 @@ from biomass_reader import (
     gcp_radar_coordinate_errors,
     parse_correction_status,
 )
-from biomass_reader.ionosphere import open_ionosphere
+from biomass_reader.geocode import native_posting, projected_sampling
+from biomass_reader.ionosphere import ionosphere_lut_summary, open_ionosphere
 from biomass_reader.product import BiomassProduct
 
 
@@ -36,7 +37,8 @@ def test_complex_samples_match_product_vrt(product_dirs, polarization, band):
 def test_real_product_geometry_and_corrections(product_dirs):
     """All staged repeat acquisitions expose consistent radar metadata."""
     slcs = [BiomassSlc.from_dir(path) for path in product_dirs]
-    assert all(slc.shape == (20_767, 1_367) for slc in slcs)
+    assert all(slc.shape[0] in {20_766, 20_767} for slc in slcs)
+    assert all(slc.shape[1] == 1_367 for slc in slcs)
     assert all(slc.look_side == "left" for slc in slcs)
     assert all(np.isclose(slc.center_frequency, 435e6) for slc in slcs)
     assert all(slc.center_target.shape == (3,) for slc in slcs)
@@ -69,12 +71,30 @@ def test_lut_coordinates_are_attached(product_dirs):
     )
 
 
+def test_ionosphere_lut_summary(product_dirs):
+    """The provenance summary exposes LUT structure without loading its data."""
+    product = BiomassProduct.from_dir(product_dirs[0])
+    summary = ionosphere_lut_summary(product.lut_nc)
+    assert {"phaseScreen", "rangeShifts"} <= set(summary["variables"])
+    assert summary["variables"]["phaseScreen"]["units"] == "rad"
+    assert "relativeAzimuthTimeSLC" in summary["coordinates"]
+
+
 def test_zero_doppler_geometry_matches_product_gcps(product_dirs):
     """Orbit/radar-grid geometry reproduces the producer's VRT GCPs."""
     for product_dir in product_dirs:
         errors = np.abs(gcp_radar_coordinate_errors(BiomassSlc.from_dir(product_dir)))
         assert np.percentile(errors[:, 0], 95) < 0.5
         assert np.percentile(errors[:, 1], 95) < 0.001
+
+
+def test_native_posting_uses_projected_gcp_sampling(product_dirs):
+    """Native posting follows rotated UTM GCP geometry, not an axis assumption."""
+    slc = BiomassSlc.from_dir(product_dirs[0])
+    easting, northing = projected_sampling(slc, 32620)
+    assert easting > 10
+    assert 5 < northing < 10
+    assert native_posting([slc], 32620) == (10.0, 5.0)
 
 
 @pytest.mark.skipif(

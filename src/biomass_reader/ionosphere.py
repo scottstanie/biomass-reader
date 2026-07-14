@@ -14,8 +14,10 @@ correction model. The applying step belongs in the geocoding workflow.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-import xarray as xr
+if TYPE_CHECKING:
+    import xarray as xr
 
 LUT_GROUPS = (
     "rfiMitigation",
@@ -40,6 +42,12 @@ def open_lut_group(lut_nc: str | Path, group: str) -> xr.Dataset:
     -------
     xarray.Dataset
     """
+    try:
+        import xarray as xr
+    except ImportError as error:
+        raise ImportError(
+            "opening annotation LUT data requires biomass-reader[ionosphere]"
+        ) from error
     assert group in LUT_GROUPS, f"unknown LUT group {group!r}; expected {LUT_GROUPS}"
     dataset = xr.open_dataset(lut_nc, group=group)
     with xr.open_dataset(lut_nc) as root:
@@ -65,3 +73,39 @@ def open_ionosphere(lut_nc: str | Path) -> xr.Dataset:
         Ionosphere-correction variables on the annotation LUT grid.
     """
     return open_lut_group(lut_nc, "ionosphereCorrection")
+
+
+def ionosphere_lut_summary(lut_nc: str | Path) -> dict[str, Any]:
+    """Return small, JSON-safe metadata for the ionosphere correction LUT.
+
+    This deliberately reads coordinates and attributes, not the full LUT.  It
+    is useful for recording exactly which product-supplied ionosphere layers
+    were available when a GSLC was made.
+    """
+    try:
+        from netCDF4 import Dataset
+    except ImportError as error:
+        raise ImportError(
+            "inspecting annotation LUT metadata requires biomass-reader[ionosphere]"
+        ) from error
+    with Dataset(lut_nc) as root:
+        group = root.groups["ionosphereCorrection"]
+        variables = {
+            name: {
+                "dims": list(variable.dimensions),
+                "units": getattr(variable, "units", None),
+            }
+            for name, variable in group.variables.items()
+        }
+        dimensions = {
+            dimension
+            for variable in group.variables.values()
+            for dimension in variable.dimensions
+        }
+        coordinates = [
+            dimension
+            for dimension in dimensions
+            if dimension in root.variables
+            and root.variables[dimension].dimensions == (dimension,)
+        ]
+    return {"variables": variables, "coordinates": coordinates}

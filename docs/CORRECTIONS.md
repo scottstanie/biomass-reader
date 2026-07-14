@@ -32,4 +32,8 @@ it separately from the L1 correction.
 
 `biomass_reader.ionosphere.open_lut_group` attaches the root NetCDF coordinate
 axes to group variables. `biomass_reader.corrections.parse_correction_status`
-reports the applied/requested flags.
+reports the applied/requested flags. Both `scripts/biomass_pipeline.py` and
+the GSLC-only `scripts/geocode_gslc.py` now check this by default, require the
+`phaseScreen` and `rangeShifts` LUT layers, and record the flags/LUT schema in
+`stack.json` and GeoTIFF tags. `--ionosphere-policy allow-unapplied` exists for
+future residual-correction experiments, but does not apply a correction itself.

@@ -79,14 +79,39 @@ Dolphin with the Whirlwind unwrapper:
 python scripts/biomass_pipeline.py \
   --products /data/biomass/BIO_S1_SCS__1S_*/ \
   --dem /data/dem_utm.tif --work /data/biomass/validation \
-  --polarization HH --spacing 30 --run-dolphin
+  --polarization HH --posting 30 30 --run-dolphin
 
 python scripts/validate_stack.py /data/biomass/validation/gslc/*.tif \
   --output-dir /data/biomass/validation/diagnostics --looks 6
 ```
 
+`--posting X Y` accepts independent UTM easting/northing postings. `--native`
+chooses conservative native postings from the source GCP lattice, snapped to
+the `10 / 2**n` series (the staged BIOMASS scenes resolve to 10 m x 5 m).
+Dolphin diagnostic panels are written by default after a successful
+`--run-dolphin`; use `--no-plot` to skip them.
+
 Every GSLC carries NaN nodata and basic provenance tags; `stack.json` records
-the common grid, DEM, source products, wavelength, and flattening choice.
+the common grid, DEM, source products, wavelength, flattening choice, and L1
+ionosphere correction/LUT state. The default checks that the L1a ionospheric
+phase-screen and group-delay corrections were already applied; it does **not**
+apply the LUT a second time.
+
+For GSLCs only (including a single source product), use:
+
+```bash
+python scripts/geocode_gslc.py \
+  --products /data/biomass/BIO_S1_SCS__1S_*/ \
+  --dem /data/dem_utm.tif --work /data/biomass/gslc \
+  --polarization HH --posting 30 30
+```
+
+The base install is reader-only. Install optional capabilities explicitly:
+
+```bash
+pip install '.[download,ionosphere,plot]'
+pixi run -e pipeline python scripts/biomass_pipeline.py --help
+```
 
 ## Tests
 
