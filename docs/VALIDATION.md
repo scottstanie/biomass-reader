@@ -21,7 +21,7 @@ python scripts/biomass_pipeline.py \
   --products "$BIOMASS_DATA"/BIO_S1_SCS__1S_*/ \
   --dem "$BIOMASS_DATA"/dem_biomass_utm.tif \
   --work "$BIOMASS_DATA"/validation-v2 \
-  --polarization HH --spacing 30 --run-dolphin
+  --polarization HH --posting 30 30 --run-dolphin
 
 python scripts/validate_stack.py \
   "$BIOMASS_DATA"/validation-v2/gslc/*.tif \

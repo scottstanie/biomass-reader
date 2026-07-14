@@ -43,12 +43,12 @@ dependencies = [
   "rasterio",
   "affine",
   "lxml",
-  "xarray",
-  "netCDF4",
-  "loguru",
-  "tyro",
-  "requests",
 ]
+
+[project.optional-dependencies]
+download = ["requests"]
+ionosphere = ["xarray", "netCDF4"]
+plot = ["matplotlib", "ultraplot"]
 
 [project.scripts]
 biomass-reader = "biomass_reader.cli:main"
@@ -82,12 +82,6 @@ shapely = ">=2.0"
 rasterio = "*"
 affine = "*"
 lxml = "*"
-xarray = "*"
-netcdf4 = "*"
-loguru = "*"
-tyro = "*"
-requests = "*"
-matplotlib = "*"
 
 # isce3 lives in the cpu/gpu features so linux CUDA hosts can swap in isce3-cuda.
 [tool.pixi.feature.cpu.dependencies]
@@ -98,6 +92,17 @@ isce3-cuda = ">=0.24"
 
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12"
+
+[tool.pixi.feature.download.dependencies]
+requests = "*"
+
+[tool.pixi.feature.ionosphere.dependencies]
+xarray = "*"
+netcdf4 = "*"
+
+[tool.pixi.feature.plot.dependencies]
+matplotlib = "*"
+ultraplot = "*"
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8"
@@ -112,6 +117,8 @@ test = "pytest"
 default = { features = ["test", "cpu"], solve-group = "default" }
 minimal = { features = ["cpu"], solve-group = "default" }
 gpu = { features = ["test", "gpu"] }
+download = { features = ["cpu", "download"], solve-group = "download" }
+pipeline = { features = ["cpu", "ionosphere", "plot"], solve-group = "pipeline" }
 
 # ----------------------------------------------------------------------------
 [tool.ruff]

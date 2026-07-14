@@ -11,14 +11,83 @@ from typing import Literal
 import numpy as np
 import rasterio
 from affine import Affine
+from rasterio.crs import CRS
+from rasterio.warp import transform
 
 from .slc import BiomassSlc
+
+
+def _posting(posting: float | tuple[float, float]) -> tuple[float, float]:
+    """Normalize a scalar legacy spacing or an ``(x, y)`` posting."""
+    if isinstance(posting, float | int):
+        posting_x = posting_y = float(posting)
+    else:
+        posting_x, posting_y = (float(value) for value in posting)
+    if posting_x <= 0 or posting_y <= 0:
+        raise ValueError("posting values must be positive")
+    return posting_x, posting_y
+
+
+def projected_sampling(slc: BiomassSlc, epsg: int) -> tuple[float, float]:
+    """Estimate native GCP sampling along projected easting and northing.
+
+    The producer VRT's ground-control points form a radar-to-map affine fit.
+    For each map coordinate, the larger contribution from the azimuth/range
+    lattice is the limiting native sampling scale. This handles BIOMASS's
+    rotated swath rather than assuming range is easting and azimuth northing.
+    """
+    target_crs = CRS.from_epsg(epsg)
+    if not target_crs.is_projected:
+        raise ValueError(f"native posting requires a projected CRS, not EPSG:{epsg}")
+    with rasterio.open(slc.slc_path) as dataset:
+        gcps, source_crs = dataset.gcps
+    if source_crs is None or len(gcps) < 3:
+        raise ValueError(f"{slc.product_id} has insufficient VRT ground-control points")
+
+    x, y = transform(
+        source_crs,
+        target_crs,
+        [gcp.x for gcp in gcps],
+        [gcp.y for gcp in gcps],
+    )
+    design = np.column_stack(
+        (
+            np.ones(len(gcps)),
+            [gcp.row for gcp in gcps],
+            [gcp.col for gcp in gcps],
+        )
+    )
+    x_coefficients = np.linalg.lstsq(design, x, rcond=None)[0]
+    y_coefficients = np.linalg.lstsq(design, y, rcond=None)[0]
+    jacobian = np.array([x_coefficients[1:], y_coefficients[1:]])
+    sampling = np.max(np.abs(jacobian), axis=1)
+    return float(sampling[0]), float(sampling[1])
+
+
+def native_posting(slcs: Sequence[BiomassSlc], epsg: int) -> tuple[float, float]:
+    """Choose conservative UTM posting from the ``10 / 2**n`` series.
+
+    Each output-axis posting is the largest value in ``10, 5, 2.5, ...`` that
+    is not coarser than the least-well-sampled source scene in that direction.
+    A 3 m range / 14 m azimuth Sentinel-1 scene would yield 2.5 m / 10 m.
+    """
+    if not slcs:
+        raise ValueError("at least one SLC is required")
+    sampling = np.min([projected_sampling(slc, epsg) for slc in slcs], axis=0)
+
+    def divisor_of_ten(value: float) -> float:
+        candidate = 10.0
+        while candidate > value:
+            candidate /= 2.0
+        return candidate
+
+    return float(divisor_of_ten(sampling[0])), float(divisor_of_ten(sampling[1]))
 
 
 def make_shared_geogrid(
     slcs: Sequence[BiomassSlc],
     epsg: int,
-    spacing: float,
+    posting: float | tuple[float, float],
     extent: Literal["union", "intersection"] = "union",
 ):
     """Create one snapped geogrid covering a stack of BIOMASS acquisitions."""
@@ -26,24 +95,23 @@ def make_shared_geogrid(
 
     if not slcs:
         raise ValueError("at least one SLC is required")
-    if spacing <= 0:
-        raise ValueError("spacing must be positive")
+    spacing_x, spacing_y = _posting(posting)
 
     grids = [
         isce3.product.bbox_to_geogrid(
             slc.radar_grid,
             slc.orbit,
             slc.doppler,
-            spacing,
-            -spacing,
+            spacing_x,
+            -spacing_y,
             epsg,
         )
         for slc in slcs
     ]
     xmins = [grid.start_x for grid in grids]
-    xmaxs = [grid.start_x + grid.width * spacing for grid in grids]
+    xmaxs = [grid.start_x + grid.width * spacing_x for grid in grids]
     ymaxs = [grid.start_y for grid in grids]
-    ymins = [grid.start_y - grid.length * spacing for grid in grids]
+    ymins = [grid.start_y - grid.length * spacing_y for grid in grids]
 
     if extent == "union":
         xmin, xmax = min(xmins), max(xmaxs)
@@ -58,14 +126,14 @@ def make_shared_geogrid(
 
     # Snap to a projection-fixed lattice so repeated runs and subset stacks
     # produce pixel-aligned grids.
-    xmin = math.floor(xmin / spacing) * spacing
-    xmax = math.ceil(xmax / spacing) * spacing
-    ymin = math.floor(ymin / spacing) * spacing
-    ymax = math.ceil(ymax / spacing) * spacing
-    width = int(round((xmax - xmin) / spacing))
-    length = int(round((ymax - ymin) / spacing))
+    xmin = math.floor(xmin / spacing_x) * spacing_x
+    xmax = math.ceil(xmax / spacing_x) * spacing_x
+    ymin = math.floor(ymin / spacing_y) * spacing_y
+    ymax = math.ceil(ymax / spacing_y) * spacing_y
+    width = int(round((xmax - xmin) / spacing_x))
+    length = int(round((ymax - ymin) / spacing_y))
     return isce3.product.GeoGridParameters(
-        xmin, ymax, spacing, -spacing, width, length, epsg
+        xmin, ymax, spacing_x, -spacing_y, width, length, epsg
     )
 
 
@@ -153,6 +221,8 @@ def write_stack_provenance(
     geogrid,
     extent: str,
     flatten: bool,
+    ionosphere: list[dict] | None = None,
+    posting_mode: str = "explicit",
 ) -> Path:
     """Write a machine-readable record of the GSLC stack geometry and inputs."""
     path = Path(path)
@@ -161,8 +231,10 @@ def write_stack_provenance(
         "polarization": slcs[0].polarization,
         "dem": str(Path(dem_file).resolve()),
         "extent_policy": extent,
+        "posting_mode": posting_mode,
         "flatten": flatten,
         "wavelength_m": slcs[0].wavelength,
+        "ionosphere": ionosphere,
         "geogrid": {
             "epsg": geogrid.epsg,
             "start_x": geogrid.start_x,
