@@ -65,23 +65,44 @@ def projected_sampling(slc: BiomassSlc, epsg: int) -> tuple[float, float]:
 
 
 def native_posting(slcs: Sequence[BiomassSlc], epsg: int) -> tuple[float, float]:
-    """Choose conservative UTM posting from the ``10 / 2**n`` series.
+    """Choose conservative posting from a standard grid series.
 
-    Each output-axis posting is the largest value in ``10, 5, 2.5, ...`` that
+    For native sampling < 10m: uses the ``10 / 2**n`` series (10, 5, 2.5, 1.25, ...).
+    For native sampling >= 10m: uses 10m increments (10, 20, 30, 40, ..., 100).
+
+    Each output-axis posting is the largest value from the appropriate series that
     is not coarser than the least-well-sampled source scene in that direction.
-    A 3 m range / 14 m azimuth Sentinel-1 scene would yield 2.5 m / 10 m.
+
+    Examples:
+        - 3m native (Sentinel-1 range) → 2.5m posting (10/2^n series)
+        - 14m native (Sentinel-1 azimuth) → 10m posting (10/2^n series)
+        - 46m native (BIOMASS range) → 40m posting (10m increment series, 1.15x upsampling)
+        - 7m native (BIOMASS azimuth) → 5m posting (10/2^n series, 1.4x upsampling)
+
+    This avoids excessive upsampling (>5x) that would occur if the 10/2^n series
+    were used for coarse-resolution sensors. BIOMASS L1A native ground resolution
+    is typically 6-10m (azimuth) and 25-50m (range, geometry-dependent), with
+    range resolution often exceeding 10m at high latitudes or far range.
     """
     if not slcs:
         raise ValueError("at least one SLC is required")
     sampling = np.min([projected_sampling(slc, epsg) for slc in slcs], axis=0)
 
-    def divisor_of_ten(value: float) -> float:
-        candidate = 10.0
-        while candidate > value:
-            candidate /= 2.0
-        return candidate
+    def standard_posting(value: float) -> float:
+        """Select posting from standard series based on native sampling."""
+        if value < 10.0:
+            # Fine resolution: use 10/2^n series (10, 5, 2.5, 1.25, ...)
+            candidate = 10.0
+            while candidate > value:
+                candidate /= 2.0
+            return candidate
+        else:
+            # Coarse resolution: use 10m increments (10, 20, 30, ..., 100)
+            # Round DOWN to nearest 10m to ensure posting ≤ native (avoid coarser than native)
+            # Capped at 100m for very coarse sensors
+            return min(math.floor(value / 10.0) * 10.0, 100.0)
 
-    return float(divisor_of_ten(sampling[0])), float(divisor_of_ten(sampling[1]))
+    return float(standard_posting(sampling[0])), float(standard_posting(sampling[1]))
 
 
 def make_shared_geogrid(
