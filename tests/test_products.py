@@ -95,14 +95,3 @@ def test_native_posting_uses_projected_gcp_sampling(product_dirs):
     assert easting > 10
     assert 5 < northing < 10
     assert native_posting([slc], 32620) == (10.0, 5.0)
-
-
-@pytest.mark.skipif(
-    importlib.util.find_spec("sarlet") is None,
-    reason="sarlet is not installed",
-)
-def test_satisfies_sarlet_slc_protocol(product_dirs):
-    """The reader conforms to sarlet's runtime-checkable SLC protocol."""
-    from sarlet._types import SLC
-
-    assert isinstance(BiomassSlc.from_dir(product_dirs[0]), SLC)

@@ -9,23 +9,23 @@ vegetation structure, motion, and propagation independently.
 For polarization (p) and acquisition (t), write the focused complex return
 as a coherent sum of surface, double-bounce, and vegetation contributions:
 
-\[
+$$
 S_p(t)=\sum_k A_{p,k}(t)\exp\{i\phi_{p,k}(t)\}.
-\]
+$$
 
 The multilooked temporal interferogram is
 
-\[
+$$
 I_p(t_a,t_b)=\langle S_p(t_a)S_p^*(t_b)\rangle.
-\]
+$$
 
 Its phase contains acquisition geometry and displacement, residual propagation,
 and the polarization-dependent change in the effective scattering phase center.
 A co-polar differential observable,
 
-\[
+$$
 D_{HH,VV}^{ab}=\arg\{I_{HH}^{ab}(I_{VV}^{ab})^*\},
-\]
+$$
 
 cancels phase terms that are genuinely common to HH and VV. It does **not**
 automatically isolate moisture: different mixtures of surface, double-bounce,
@@ -36,9 +36,9 @@ phase screen, and group delay were corrected.
 
 For three dates, the closure phase
 
-\[
+$$
 C_p^{123}=\arg\{I_p^{12}I_p^{23}(I_p^{13})^*\}
-\]
+$$
 
 cancels phase that can be represented as a scalar per acquisition. Non-zero
 closure therefore diagnoses non-separable scattering evolution and estimator
@@ -54,20 +54,20 @@ for polarization-dependent phase centers
 The exploratory script uses 6 by 6 spatial looks on the 30 m GSLCs and gates
 phase summaries at coherence 0.5.
 
-| Observable | 2026-04-23 | 2026-04-26 | 2026-04-29 |
-|---|---:|---:|---:|
-| median HV/VH coherence | 0.9909 | 0.9911 | 0.9909 |
-| median absolute HV-VH phase | 0.0222 rad | 0.0215 rad | 0.0209 rad |
-| median HH/VV coherence | 0.4140 | 0.4150 | 0.4152 |
-| circular mean HH-VV phase | -0.0660 rad | -0.0617 rad | -0.0644 rad |
+| Observable                  |  2026-04-23 |  2026-04-26 |  2026-04-29 |
+| --------------------------- | ----------: | ----------: | ----------: |
+| median HV/VH coherence      |      0.9909 |      0.9911 |      0.9909 |
+| median absolute HV-VH phase |  0.0222 rad |  0.0215 rad |  0.0209 rad |
+| median HH/VV coherence      |      0.4140 |      0.4150 |      0.4152 |
+| circular mean HH-VV phase   | -0.0660 rad | -0.0617 rad | -0.0644 rad |
 
 HV/VH agreement is a strong reciprocity and processing sanity check. HH/VV is
 less coherent, as expected when the channels weight scattering mechanisms
 differently, but its spatial circular mean is stable over these dates.
 
-For the 23–26, 23–29, and 26–29 April pairs, the median absolute high-coherence
-HH–VV temporal differential phases are 0.176, 0.193, and 0.178 rad. Median
-absolute closure phase is 0.095–0.102 rad across the four channels. These values
+For the 23-26, 23-29, and 26-29 April pairs, the median absolute high-coherence
+HH-VV temporal differential phases are 0.176, 0.193, and 0.178 rad. Median
+absolute closure phase is 0.095-0.102 rad across the four channels. These values
 are large enough to study but are not source attribution.
 
 The result is consistent with published warnings that polarization-dependent
@@ -88,7 +88,7 @@ volume contributions rather than assigning a single channel to a single cause
    Estimate covariance/coherency matrices using a physically stated window.
 3. Stratify pixels by polarimetric mechanism (surface, double bounce, volume),
    forest/non-forest class, incidence angle, slope, and temporal coherence.
-4. Test temporal HH–VV differential phase and per-channel closure against rain,
+4. Test temporal HH-VV differential phase and per-channel closure against rain,
    modeled/in-situ soil moisture, vegetation water content, wind, and phenology.
 5. Fit nested models rather than a single phase threshold:
 

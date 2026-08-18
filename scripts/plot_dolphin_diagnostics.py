@@ -92,16 +92,15 @@ def _pair_label(path: Path) -> str:
     match = PAIR.search(path.name)
     assert match is not None
     start, end = (datetime.strptime(value, "%Y%m%d") for value in match.groups())
-    return f"{start:%b %d}–{end:%b %d}  ({(end - start).days} d)"
+    return f"{start:%b %d}-{end:%b %d}  ({(end - start).days} d)"
 
 
 def _closure_label(path: Path) -> str:
     """Make a short label for an adjacent three-date closure phase."""
     match = CLOSURE.search(path.name)
     assert match is not None
-    return "–".join(
-        datetime.strptime(value, "%Y%m%d").strftime("%b %d")
-        for value in match.groups()
+    return "-".join(
+        datetime.strptime(value, "%Y%m%d").strftime("%b %d") for value in match.groups()
     )
 
 
@@ -120,7 +119,7 @@ def _valid_data(data: np.ndarray, nodata: float) -> np.ndarray:
 
 
 def _phase_cmap():
-    """Use sarlet's oil-slick colors, leaving nodata transparent."""
+    """Use oil-slick colors, leaving nodata transparent."""
     cmap = OIL_SLICK_CMAP.copy()
     cmap.set_bad((1, 1, 1, 0))
     return cmap

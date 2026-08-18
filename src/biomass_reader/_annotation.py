@@ -159,8 +159,7 @@ def parse_annotation(path: str | Path, mph_path: str | Path) -> AnnotationMetada
     Parameters
     ----------
     path
-        Path to the ``annotation/*.xml`` main annotation file.
-    mph_path
+        Path to the ``annotation/*.xml`` main annotation file.  mph_path
         Path to the product MPH (``bio*.xml`` at the product root). The look
         direction is carried in the MPH (``sar:antennaLookDirection``), not the
         annotation.

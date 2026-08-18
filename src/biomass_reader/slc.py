@@ -1,11 +1,6 @@
 """``BiomassSlc``: a BIOMASS L1a SCS scene as an isce3-ready SLC.
 
-``BiomassSlc`` conforms to the ``SLC`` protocol used across the sarlet / sweets
-stack: it exposes a ``radar_grid``, ``orbit``, and Doppler ``LUT2d`` built from
-the product annotation, plus the complex pixels. That is all
-``isce3.geocode.geocode_slc`` needs to produce a geocoded SLC.
-
-Unlike ``s1reader.Sentinel1BurstSlc`` (one frozen dataclass with ~70 fields),
+Unlike ``s1reader.Sentinel1BurstSlc`` (a frozen dataclass with ~70 fields),
 the isce3 objects are built lazily from a small parsed
 :class:`~biomass_reader._annotation.AnnotationMetadata`.
 """
@@ -58,9 +53,7 @@ class BiomassSlc:
         self._polarization = pol
 
     @classmethod
-    def from_dir(
-        cls, product_dir: str | Path, polarization: str = "HH"
-    ) -> BiomassSlc:
+    def from_dir(cls, product_dir: str | Path, polarization: str = "HH") -> BiomassSlc:
         """Load a ``BiomassSlc`` from an extracted SCS product directory.
 
         Parameters
@@ -149,9 +142,8 @@ class BiomassSlc:
         """Approximate the scene-center ground target in ECEF coordinates.
 
         BIOMASS does not store a distinguished center-pixel ECEF coordinate in
-        the main annotation.  The footprint centroid at zero ellipsoidal
-        height is the convention used by sarlet's Sentinel-1 adapter for stack
-        baseline calculations.
+        the main annotation.
+        The footprint centroid at zero ellipsoidal height.
         """
         import isce3
 

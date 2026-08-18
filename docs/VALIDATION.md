@@ -54,11 +54,11 @@ footprint used for the statistics below.
 
 ## Interferometric results
 
-| Pair | Valid fraction | Median coherence | Fraction of valid pixels ≥ 0.5 |
-|---|---:|---:|---:|
-| 2026-04-23–26 | 0.5108 | 0.4499 | 0.3890 |
-| 2026-04-23–29 | 0.5036 | 0.2392 | 0.0717 |
-| 2026-04-26–29 | 0.5121 | 0.4506 | 0.3888 |
+| Pair          | Valid fraction | Median coherence | Fraction of valid pixels ≥ 0.5 |
+| ------------- | -------------: | ---------------: | -----------------------------: |
+| 2026-04-23-26 |         0.5108 |           0.4499 |                         0.3890 |
+| 2026-04-23-29 |         0.5036 |           0.2392 |                         0.0717 |
+| 2026-04-26-29 |         0.5121 |           0.4506 |                         0.3888 |
 
 Among 15,576 looked pixels where all three pair coherences are at least 0.5,
 the median absolute closure phase is 0.1017 rad and the 90th percentile is
@@ -74,7 +74,7 @@ connected component. The metric excludes the declared uint16 nodata value
 
 HH, HV, VH, and VV were independently geocoded to the same grid. HV/VH
 reciprocity is strong: median coherence is approximately 0.991 and median
-absolute phase difference is 0.021–0.022 rad. HH/VV median coherence is about
+absolute phase difference is 0.021-0.022 rad. HH/VV median coherence is about
 0.415 and its spatial circular mean phase remains near -0.06 rad across the
 three dates. Interpretation and proposed external validation are in
 [`POLARIMETRIC_RESEARCH.md`](POLARIMETRIC_RESEARCH.md).

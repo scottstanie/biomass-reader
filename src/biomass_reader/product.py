@@ -33,7 +33,7 @@ class BiomassProduct:
     """Resolved paths to the components of one BIOMASS L1a SCS product."""
 
     path: Path
-    mph: Path
+    mph: Path  # magnitude, phase
     annotation_xml: Path
     lut_nc: Path
     orbit_xml: Path
